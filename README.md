@@ -26,27 +26,36 @@ A lightweight, secure, and highly customizable web store and admin panel for Min
 **1. Clone the repository:**
 bash
 git clone https://github.com/TheJumer/MinePanel.git
-cd MinePanel
+
+ cd MinePanel
+
 2. Install dependencies:
 
-Make sure you have Python 3.9+ installed.
+ Make sure you have Python 3.9+ installed.
 
-Bash
-pip install -r requirements.txt
+ Bash
+ pip install -r requirements.txt
+
 3. Environment Configuration:
 
-Rename .env.example to .env and fill in your secure details:
-JWT_SECRET=your_super_secret_32_characters_long_string
-ADMIN_USER=admin
-ADMIN_PASS=your_strong_password
+ Rename .env.example to .env and fill in your secure details:
+
+ JWT_SECRET=your_super_secret_32_characters_long_string
+
+ ADMIN_USER=admin
+
+ ADMIN_PASS=your_strong_password
+
 4. Run the server:
 
 Bash
 cd app
 uvicorn main:app --reload
+
 5. Access the store:
-Store frontend: http://127.0.0.1:8000
-Admin Panel: http://127.0.0.1:8000/admin
+ Store frontend: http://127.0.0.1:8000
+
+ Admin Panel: http://127.0.0.1:8000/admin
 
 📄 License
 This project is open-source and available under the MIT License. Not an official Minecraft product. Not approved by or associated with Mojang.
