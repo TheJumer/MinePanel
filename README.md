@@ -52,7 +52,7 @@ A lightweight, secure, and highly customizable web store and admin panel for Min
 
 &#x20;  ```bash
 
-&#x20;  git clone \[https://github.com/YOUR\_USERNAME/MinePanel.git](https://github.com/YOUR\_USERNAME/MinePanel.git)
+&#x20;  git clone \[https://github.com/TheJumer/MinePanel.git](https://github.com/TheJumer/MinePanel.git)
 
 &#x20;  cd MinePanel
 
