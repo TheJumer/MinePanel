@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ site_title }}</title>
+    <link rel="icon" type="image/png" href="{{ site_favicon }}">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body { background: #010409; color: #e2e8f0; font-family: 'Inter', sans-serif; }
+        .glass { background: rgba(15, 23, 42, 0.6); backdrop-blur: 15px; border: 1px solid rgba(255,255,255,0.05); }
+        .ticker-container { overflow: hidden; white-space: nowrap; background: rgba(15, 23, 42, 0.8); border-b: 1px solid rgba(255,255,255,0.05); }
+        .ticker-scroll { display: inline-block; animation: ticker 30s linear infinite; }
+        @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #010409; }
+        ::-webkit-scrollbar-thumb { background: #1f2937; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        
+        .custom-bg-container { position: fixed; inset: 0; z-index: -2; overflow: hidden; }
+        .custom-bg-media { width: 100%; height: 100%; object-fit: cover; }
+        .bg-overlay { position: fixed; inset: 0; z-index: -1; background: rgba(1, 4, 9, 0.85); }
+        .bg-blur { backdrop-filter: blur(10px); }
+
+        /* Стилі для сайдбару */
+        #category-sidebar { scroll-behavior: smooth; }
+        .category-btn.active {
+            background-color: rgba(79, 70, 229, 0.1);
+            color: #818cf8;
+            border-left: 4px solid #4f46e5;
+            padding-left: 0.75rem; 
+        }
+        .category-btn:not(.active):hover {
+            background-color: rgba(255, 255, 255, 0.03);
+            color: #fff;
+        }
+        
+        .tracking-tight { letter-spacing: -0.01em; }
+        .tracking-wide { letter-spacing: 0.025em; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col relative z-0">
+    
+    <div class="custom-bg-container">
+        {% if bg_type == 'image' %}
+            <img src="{{ bg_url }}" class="custom-bg-media">
+        {% elif bg_type == 'video' %}
+            <video autoplay loop muted playsinline class="custom-bg-media">
+                <source src="{{ bg_url }}" type="video/mp4">
+            </video>
+        {% endif %}
+    </div>
+    
+    <div class="bg-overlay {% if bg_blur == 'true' %}bg-blur{% endif %}"></div>
+
+    <div class="ticker-container py-2.5">
+        <div id="recent-ticker" class="ticker-scroll text-sm"></div>
+    </div>
+
+    <div class="container mx-auto px-4 lg:px-6 py-8 flex-grow flex flex-col lg:flex-row gap-8">
+        
+        <aside class="w-full lg:w-72 flex flex-col gap-6 lg:sticky lg:top-8 lg:h-[calc(100vh-6rem)] overflow-y-auto custom-scrollbar" id="category-sidebar">
+            
+            <div class="hidden lg:flex flex-col items-center gap-4 glass rounded-3xl p-6 shadow-xl border border-white/5 text-center">
+                {% if site_logo %}
+                    <img src="{{ site_logo }}" class="w-20 h-20 object-contain rounded-2xl drop-shadow-xl">
+                {% else %}
+                    <div class="w-20 h-20 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg"><i data-lucide="gem" class="text-white w-10 h-10"></i></div>
+                {% endif %}
+                <h1 class="text-2xl font-bold text-white tracking-tight">{{ server_name }}</h1>
+            </div>
+
+            {% if show_online == 'true' %}
+            <input type="hidden" id="max-online-val" value="{{ max_online }}">
+            <div class="glass rounded-3xl p-6 shadow-xl border border-white/5 flex flex-col items-center gap-4">
+                <div class="flex items-center gap-4 w-full">
+                    <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                        <i data-lucide="users" class="text-emerald-400 animate-pulse w-6 h-6"></i>
+                    </div>
+                    <div class="flex flex-col flex-grow">
+                        <div class="flex justify-between items-baseline">
+                            <span class="text-2xl font-extrabold text-white tracking-tight" id="online-count"> Loading... </span>
+                            <span class="text-xs text-slate-500 font-bold tracking-wide"> / {{ max_online }} </span>
+                        </div>
+                        <span class="text-xs text-emerald-400 font-semibold tracking-wide uppercase"> Гравців онлайн </span>
+                    </div>
+                </div>
+                <div class="w-full bg-slate-950/80 rounded-full h-2.5 overflow-hidden border border-white/5">
+                    <div id="online-bar" class="bg-gradient-to-r from-emerald-500 to-emerald-400 h-2.5 rounded-full transition-all duration-1000 shadow-[0_0_10px_rgba(16,185,129,0.3)]" style="width: 0%"></div>
+                </div>
+                <p class="text-center text-xs text-slate-500 w-full pt-1 border-t border-white/5"> Версія: <span class="font-bold text-slate-300">{{ mc_version }}</span> </p>
+            </div>
+            {% endif %}
+
+            <div class="glass rounded-3xl p-3 shadow-xl border border-white/5 space-y-1" id="categories-list">
+                </div>
+            
+            <button onclick="openCart()" class="lg:hidden flex items-center justify-between w-full p-4 glass rounded-3xl text-indigo-400 hover:text-white group mt-auto">
+                <div class="flex items-center gap-3">
+                    <i data-lucide="shopping-basket"></i>
+                    <span class="font-bold">Мій кошик</span>
+                </div>
+                <span id="cart-count-mob" class="bg-indigo-500 text-white text-[10px] font-bold w-6 h-6 flex items-center justify-center rounded-full">0</span>
+            </button>
+
+        </aside>
+
+        <main class="flex-1 flex flex-col gap-8">
+            
+            <header class="p-6 flex justify-between items-center glass rounded-3xl sticky top-4 lg:top-0 z-50">
+                <div class="flex items-center gap-3 lg:hidden">
+                    {% if site_logo %}
+                        <img src="{{ site_logo }}" class="w-8 h-8 object-contain rounded-lg">
+                    {% endif %}
+                    <h1 class="text-xl font-bold">{{ server_name }}</h1>
+                </div>
+
+                <div class="flex items-center gap-4 lg:gap-5 ml-auto w-full lg:w-auto justify-end">
+                    
+                    <div class="hidden md:flex items-center gap-4">
+                        {% if dc_mode != 'none' %}
+                        <a href="{{ dc_url }}" target="_blank" class="flex items-center gap-1.5 text-slate-400 hover:text-indigo-400 transition-colors">
+                            {% if dc_mode == 'icon' or dc_mode == 'both' %}<i data-lucide="message-circle" class="w-5 h-5"></i>{% endif %}
+                            {% if dc_mode == 'text' or dc_mode == 'both' %}<span class="text-sm font-medium">Discord</span>{% endif %}
+                        </a>
+                        {% endif %}
+
+                        {% if tg_mode != 'none' %}
+                        <a href="{{ tg_url }}" target="_blank" class="flex items-center gap-1.5 text-slate-400 hover:text-sky-400 transition-colors">
+                            {% if tg_mode == 'icon' or tg_mode == 'both' %}<i data-lucide="send" class="w-5 h-5"></i>{% endif %}
+                            {% if tg_mode == 'text' or tg_mode == 'both' %}<span class="text-sm font-medium">Telegram</span>{% endif %}
+                        </a>
+                        {% endif %}
+
+                        {% if yt_mode != 'none' %}
+                        <a href="{{ yt_url }}" target="_blank" class="flex items-center gap-1.5 text-slate-400 hover:text-rose-500 transition-colors">
+                            {% if yt_mode == 'icon' or yt_mode == 'both' %}<i data-lucide="monitor-play" class="w-5 h-5"></i>{% endif %}
+                            {% if yt_mode == 'text' or yt_mode == 'both' %}<span class="text-sm font-medium">YouTube</span>{% endif %}
+                        </a>
+                        {% endif %}
+                    </div>
+
+                    <select id="lang-switcher" onchange="changeLanguage(this.value)" class="bg-slate-900 text-slate-300 border border-slate-700 rounded-xl px-3 py-2 text-xs outline-none focus:border-indigo-500 cursor-pointer hidden sm:block">
+                        <option value="en">English</option>
+                        <option value="uk">Українська</option>
+                        <option value="ru">Русский</option>
+                    </select>
+
+                    <button onclick="openCart()" class="relative p-3 bg-slate-900/50 hover:bg-white/5 rounded-2xl transition-all hidden lg:block">
+                        <i data-lucide="shopping-basket"></i>
+                        <span id="cart-count" class="absolute -top-1.5 -right-1.5 bg-indigo-500 text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full text-white">0</span>
+                    </button>
+
+                    <div class="hidden lg:flex items-center gap-3 bg-slate-900 px-5 py-2.5 rounded-2xl border border-slate-800 shadow-inner cursor-pointer hover:border-indigo-500/50 transition-colors ml-2" onclick="copyIP()">
+                        <span class="relative flex h-3 w-3"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span></span>
+                        <span class="font-mono text-sm font-semibold text-white tracking-wider" id="server-ip">{{ server_ip }}</span>
+                        <i data-lucide="copy" class="w-4 h-4 text-slate-400 ml-1"></i>
+                    </div>
+
+                </div>
+            </header>
+
+            <div class="text-center md:text-left pt-6 pb-2 px-4">
+                <h2 class="text-4xl md:text-5xl font-black text-white mb-5 leading-tight tracking-tight">{{ hero_title | safe }}</h2>
+                <p class="text-slate-400 text-lg max-w-2xl">{{ hero_subtitle }}</p>
+            </div>
+
+            <div id="products-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                </div>
+            
+        </main>
+    </div>
+
+    <footer class="border-t border-white/5 bg-slate-950/50 py-12 mt-auto backdrop-blur-md">
+        <div class="container mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-10">
+            <div class="flex flex-col gap-4">
+                <div class="flex items-center gap-3">
+                    {% if site_logo %}
+                        <img src="{{ site_logo }}" class="w-10 h-10 object-contain rounded-xl drop-shadow-lg">
+                    {% else %}
+                        <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg"><i data-lucide="gem" class="text-white"></i></div>
+                    {% endif %}
+                    <div>
+                        <h3 class="font-bold text-white text-lg">{{ server_name }}</h3>
+                        <p class="text-slate-500 text-xs">Minecraft {{ mc_version }}</p>
+                    </div>
+                </div>
+                <p class="text-slate-500 text-sm max-w-xs leading-relaxed">
+                    &copy; 2024 {{ server_name }} — Всі права захищені.<br>
+                    Не пов'язаний з Mojang AB, всі кошти йдуть на розвиток проєкту.
+                </p>
+            </div>
+
+            <div class="flex flex-col gap-3">
+                <h4 class="font-bold text-white uppercase tracking-wider mb-2">Навігація</h4>
+                <button onclick="openTermsModal()" class="text-slate-400 hover:text-white transition-colors text-left w-fit text-sm">Умови оплати та повернення</button>
+                <button onclick="openContactModal()" class="text-slate-400 hover:text-white transition-colors text-left w-fit text-sm">Контакти</button>
+            </div>
+
+            <div class="flex flex-col gap-3">
+                <h4 class="font-bold text-white uppercase tracking-wider mb-2">Ми приймаємо</h4>
+                <p class="text-slate-400 text-sm">Банківські картки (Україна)</p>
+                <p class="text-slate-400 text-sm">Банківські картки (Міжнародні)</p>
+                <div class="flex gap-2 mt-2">
+                    <div class="px-2 py-1 bg-white/5 border border-white/10 rounded text-xs font-bold text-slate-300 flex items-center gap-1"><i data-lucide="credit-card" class="w-3 h-3 text-indigo-400"></i> VISA</div>
+                    <div class="px-2 py-1 bg-white/5 border border-white/10 rounded text-xs font-bold text-slate-300 flex items-center gap-1"><i data-lucide="credit-card" class="w-3 h-3 text-rose-400"></i> MasterCard</div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <div id="terms-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[80] flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+        <div class="glass max-w-2xl w-full rounded-3xl p-8 shadow-2xl relative transform scale-95 transition-transform duration-300" id="terms-content">
+            <button onclick="closeTermsModal()" class="absolute top-6 right-6 text-slate-400 hover:text-white"><i data-lucide="x"></i></button>
+            <h2 class="text-2xl font-bold text-white mb-6 flex items-center gap-2"><i data-lucide="file-text" class="text-amber-400"></i> Умови використання</h2>
+            <div class="overflow-y-auto max-h-96 pr-4 custom-scrollbar text-slate-300 text-sm whitespace-pre-wrap leading-relaxed">{{ terms_text }}</div>
+        </div>
+    </div>
+
+    <div id="contact-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[80] flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+        <div class="glass max-w-md w-full rounded-3xl p-8 shadow-2xl relative transform scale-95 transition-transform duration-300" id="contact-content">
+            <button onclick="closeContactModal()" class="absolute top-6 right-6 text-slate-400 hover:text-white"><i data-lucide="x"></i></button>
+            <h2 class="text-2xl font-bold text-white mb-6 flex items-center gap-2"><i data-lucide="phone" class="text-sky-400"></i> Контакти</h2>
+            <div class="space-y-4">
+                {% if contact_email %}
+                <a href="mailto:{{ contact_email }}" class="flex items-center gap-4 p-4 bg-slate-900/50 border border-white/5 rounded-xl hover:bg-white/5 transition-colors group">
+                    <div class="w-10 h-10 bg-amber-500/10 rounded-lg flex items-center justify-center"><i data-lucide="mail" class="text-amber-400"></i></div>
+                    <div class="flex flex-col"><span class="text-xs text-slate-500 font-bold uppercase">Email</span><span class="text-slate-300 group-hover:text-white transition-colors">{{ contact_email }}</span></div>
+                </a>
+                {% endif %}
+                {% if tg_url and tg_mode != 'none' %}
+                <a href="{{ tg_url }}" target="_blank" class="flex items-center gap-4 p-4 bg-slate-900/50 border border-white/5 rounded-xl hover:bg-white/5 transition-colors group">
+                    <div class="w-10 h-10 bg-sky-500/10 rounded-lg flex items-center justify-center"><i data-lucide="send" class="text-sky-400"></i></div>
+                    <div class="flex flex-col"><span class="text-xs text-slate-500 font-bold uppercase">Telegram</span><span class="text-slate-300 group-hover:text-white transition-colors">Написати нам</span></div>
+                </a>
+                {% endif %}
+                {% if dc_url and dc_mode != 'none' %}
+                <a href="{{ dc_url }}" target="_blank" class="flex items-center gap-4 p-4 bg-slate-900/50 border border-white/5 rounded-xl hover:bg-white/5 transition-colors group">
+                    <div class="w-10 h-10 bg-indigo-500/10 rounded-lg flex items-center justify-center"><i data-lucide="message-circle" class="text-indigo-400"></i></div>
+                    <div class="flex flex-col"><span class="text-xs text-slate-500 font-bold uppercase">Discord</span><span class="text-slate-300 group-hover:text-white transition-colors">Приєднатися</span></div>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div id="cart-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+        <div class="glass max-w-md w-full rounded-3xl p-8 shadow-2xl">
+            <div class="flex justify-between items-center mb-6"><h2 class="text-2xl font-bold flex items-center gap-2 text-white"><i data-lucide="shopping-cart"></i> <span data-i18n="cart_title">Your cart</span></h2><button onclick="closeCart()" class="text-slate-400 hover:text-white"><i data-lucide="x"></i></button></div>
+            <div id="cart-items" class="space-y-4 mb-6 max-h-60 overflow-y-auto pr-2 custom-scrollbar"></div>
+            <div class="space-y-4">
+                <div class="flex justify-center mb-4"><img id="cart-player-head" src="https://minotar.net/helm/Steve/100.png" class="w-20 h-20 rounded-xl border-2 border-slate-700 shadow-xl bg-slate-800"></div>
+                <input type="text" id="cart-nickname" oninput="updateCartSkin(this.value)" data-i18n-placeholder="ph_nickname" placeholder="Your nickname" class="w-full bg-slate-950 border border-white/10 rounded-xl p-3 outline-none focus:border-indigo-500 transition-all text-white text-center font-bold">
+                <input type="text" id="cart-promo" data-i18n-placeholder="ph_promo" placeholder="Promo code" class="w-full bg-slate-950 border border-white/10 rounded-xl p-3 outline-none focus:border-indigo-500 transition-all uppercase font-mono text-white text-center">
+                <div class="flex justify-between text-xl font-bold p-4 bg-white/5 rounded-xl text-white"><span data-i18n="cart_total">Total:</span><span id="cart-total">0 ₴</span></div>
+                <button onclick="checkout()" class="w-full py-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 shadow-lg font-bold transition-all text-white" id="pay-btn" data-i18n="btn_pay">Pay</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="product-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
+        <div class="bg-slate-900 border border-white/10 max-w-3xl w-full rounded-3xl p-0 shadow-2xl overflow-hidden flex flex-col md:flex-row transform scale-95 transition-transform duration-300 relative" id="product-modal-content">
+            <button onclick="closeProductModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white z-50 bg-slate-950/50 rounded-full p-2 md:hidden"><i data-lucide="x"></i></button>
+            <div class="md:w-2/5 bg-slate-950/50 p-8 flex items-center justify-center border-b md:border-b-0 md:border-r border-white/5"><img id="pm-img" src="" class="w-48 h-48 md:w-full md:h-auto object-contain drop-shadow-2xl"></div>
+            <div class="md:w-3/5 p-8 flex flex-col relative">
+                <button onclick="closeProductModal()" class="absolute top-6 right-6 text-slate-400 hover:text-white hidden md:block"><i data-lucide="x"></i></button>
+                <h3 id="pm-name" class="text-3xl font-bold text-white mb-3 pr-8"></h3>
+                <div id="pm-price-container" class="mb-6"></div>
+                <div class="flex-grow overflow-y-auto max-h-56 mb-6 pr-4 custom-scrollbar"><p id="pm-desc" class="text-slate-300 text-sm whitespace-pre-wrap leading-relaxed"></p></div>
+                <button id="pm-add-btn" class="w-full py-4 bg-indigo-600 hover:bg-indigo-500 shadow-lg rounded-xl font-bold text-white flex items-center justify-center gap-2 mt-auto transition-all"><i data-lucide="shopping-bag" class="w-5 h-5"></i> <span data-i18n="btn_add">Add to cart</span></button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/app.js?v=40"></script>
+</body>
+</html>
