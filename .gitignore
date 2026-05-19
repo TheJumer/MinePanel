@@ -1,0 +1,36 @@
+# ════════════════════════════════════════════
+#  MinePanel .gitignore
+# ════════════════════════════════════════════
+
+# КРИТИЧНО — ніколи не комітити!
+.env
+*.db
+data/
+
+# Завантажені файли користувачів
+static/uploads/*
+!static/uploads/.gitkeep
+
+# Логи
+logs/
+*.log
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+.venv/
+env/
+*.egg-info/
+dist/
+build/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
